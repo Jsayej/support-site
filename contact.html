@@ -582,22 +582,26 @@ p{ margin:0 0 1em; color:var(--ink-70); }
           <p style="font-size:.92rem; margin-bottom:1.6em;">Fields marked * are required.</p>
 
           <!--
-            This form posts to FormSubmit (https://formsubmit.co), a free
-            static-friendly form backend that emails submissions straight to
-            info@paldeepsense.com -- no account, no server, no API key needed.
-            Submission is handled by the script below via fetch(), so the
-            page shows a real success/error message instead of navigating
-            away.
+            This form posts to Web3Forms (https://web3forms.com), a free
+            form backend that emails submissions straight to
+            info@paldeepsense.com. It needs a one-time "access key" instead
+            of an account -- get yours in under a minute:
 
-            IMPORTANT - one-time activation step:
-            The very first time this form is submitted from the LIVE site
-            (after you deploy it, e.g. to GitHub Pages), FormSubmit sends a
-            confirmation email to info@paldeepsense.com with an "Activate
-            form" link. Click that link once and every submission after
-            that is delivered automatically. Until it's activated, that
-            first submission won't arrive as an email (the on-page
-            confirmation message will still show) -- so send one test
-            enquiry right after deploying and confirm it.
+            SETUP (do this once):
+              1. Go to https://web3forms.com
+              2. Enter info@paldeepsense.com and click "Create Access Key"
+              3. Web3Forms emails you a key that looks like
+                 a1b2c3d4-e5f6-... -- copy it
+              4. Paste it into the value="" of the hidden "access_key"
+                 input just below, replacing YOUR_ACCESS_KEY_HERE
+              5. Deploy, then submit one test enquiry to confirm
+
+            Submission is handled by the script near the bottom of this
+            page via fetch(), so the page shows a real success/error
+            message instead of navigating away. If the request fails for
+            any reason (including a blocked/unreachable network), the form
+            automatically falls back to opening the visitor's email app
+            with everything filled in, addressed to info@paldeepsense.com.
 
             NOTE: this will not work from Claude's in-chat file preview,
             since that preview runs the page inside a sandboxed iframe that
@@ -605,11 +609,11 @@ p{ margin:0 0 1em; color:var(--ink-70); }
             this file and open it directly in a browser tab, or deploy it
             to GitHub Pages.
           -->
-          <form action="https://formsubmit.co/info@paldeepsense.com" method="POST" id="contactForm">
-            <input type="hidden" name="_subject" value="New PalCandy wholesale enquiry">
-            <input type="hidden" name="_template" value="table">
-            <input type="hidden" name="_captcha" value="false">
-            <input type="text" name="_honey" style="display:none" tabindex="-1" autocomplete="off">
+          <form action="https://api.web3forms.com/submit" method="POST" id="contactForm">
+            <input type="hidden" name="access_key" value="YOUR_ACCESS_KEY_HERE">
+            <input type="hidden" name="subject" value="New PalCandy wholesale enquiry">
+            <input type="hidden" name="from_name" value="PalCandy website">
+            <input type="checkbox" name="botcheck" style="display:none" tabindex="-1" autocomplete="off">
 
             <div class="field-row">
               <div class="field">
@@ -825,7 +829,7 @@ document.addEventListener("DOMContentLoaded", function () {
     var controller = new AbortController();
     var timeoutId = setTimeout(function () { controller.abort(); }, 8000);
 
-    fetch("https://formsubmit.co/ajax/info@paldeepsense.com", {
+    fetch("https://api.web3forms.com/submit", {
       method: "POST",
       headers: { Accept: "application/json" },
       body: data,
@@ -836,7 +840,8 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!res.ok) throw new Error("Request failed");
         return res.json();
       })
-      .then(function () {
+      .then(function (json) {
+        if (!json.success) throw new Error("Request rejected");
         status.style.color = "var(--green-d)";
         status.textContent =
           "Thanks - your enquiry is on its way. We'll reply within one business day.";
@@ -845,9 +850,9 @@ document.addEventListener("DOMContentLoaded", function () {
       .catch(function () {
         clearTimeout(timeoutId);
         // The automatic send didn't go through (often a network/firewall
-        // block on formsubmit.co on the visitor's side, not a site bug).
-        // Fall back to opening their email client with everything filled in,
-        // so the enquiry still reaches info@paldeepsense.com.
+        // block, or the access_key hasn't been set up yet -- not a site
+        // bug). Fall back to opening their email client with everything
+        // filled in, so the enquiry still reaches info@paldeepsense.com.
         var mailto = buildMailto(data);
         status.style.color = "var(--cherry)";
         status.innerHTML =
