@@ -585,17 +585,27 @@ p{ margin:0 0 1em; color:var(--ink-70); }
             This form posts to FormSubmit (https://formsubmit.co), a free
             static-friendly form backend that emails submissions straight to
             info@paldeepsense.com -- no account, no server, no API key needed.
+            Submission is handled by the script below via fetch(), so the
+            page shows a real success/error message instead of navigating
+            away.
 
             IMPORTANT - one-time activation step:
-            The very first time this form is submitted (from the live
-            GitHub Pages URL), FormSubmit sends a confirmation email to
-            info@paldeepsense.com with an "Activate form" link. Click that
-            link once and every submission after that is delivered
-            automatically as a normal email. Until it's activated, that
-            first submission won't arrive -- so send one test enquiry after
-            you deploy and confirm it.
+            The very first time this form is submitted from the LIVE site
+            (after you deploy it, e.g. to GitHub Pages), FormSubmit sends a
+            confirmation email to info@paldeepsense.com with an "Activate
+            form" link. Click that link once and every submission after
+            that is delivered automatically. Until it's activated, that
+            first submission won't arrive as an email (the on-page
+            confirmation message will still show) -- so send one test
+            enquiry right after deploying and confirm it.
+
+            NOTE: this will not work from Claude's in-chat file preview,
+            since that preview runs the page inside a sandboxed iframe that
+            blocks outgoing form requests. To test it for real, download
+            this file and open it directly in a browser tab, or deploy it
+            to GitHub Pages.
           -->
-          <form action="https://formsubmit.co/info@paldeepsense.com" method="POST">
+          <form action="https://formsubmit.co/info@paldeepsense.com" method="POST" id="contactForm">
             <input type="hidden" name="_subject" value="New PalCandy wholesale enquiry">
             <input type="hidden" name="_template" value="table">
             <input type="hidden" name="_captcha" value="false">
@@ -650,8 +660,9 @@ p{ margin:0 0 1em; color:var(--ink-70); }
               <textarea id="message" name="message" placeholder="Tell us about your business and what you currently stock..."></textarea>
             </div>
 
-            <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">Send enquiry</button>
-            <p class="form-note">We'll reply to the email address you provide, usually within one business day.</p>
+            <button type="submit" class="btn btn-primary" id="contactSubmitBtn" style="width:100%; justify-content:center;">Send enquiry</button>
+            <p class="form-note" id="contactFormNote">We'll reply to the email address you provide, usually within one business day.</p>
+            <p id="contactFormStatus" role="status" aria-live="polite" style="margin-top:12px; font-size:.88rem; display:none;"></p>
           </form>
         </div>
       </div>
@@ -765,6 +776,57 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var form = document.getElementById("contactForm");
+  if (!form) return;
+  var status = document.getElementById("contactFormStatus");
+  var btn = document.getElementById("contactSubmitBtn");
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Sending...";
+    status.style.display = "block";
+    status.style.color = "var(--ink-70)";
+    status.textContent = "Sending your enquiry...";
+
+    var data = new FormData(form);
+
+    fetch("https://formsubmit.co/ajax/info@paldeepsense.com", {
+      method: "POST",
+      headers: { Accept: "application/json" },
+      body: data,
+    })
+      .then(function (res) {
+        if (!res.ok) throw new Error("Request failed");
+        return res.json();
+      })
+      .then(function () {
+        status.style.color = "var(--green-d)";
+        status.textContent =
+          "Thanks - your enquiry is on its way. We'll reply within one business day.";
+        form.reset();
+      })
+      .catch(function () {
+        status.style.color = "var(--cherry)";
+        status.innerHTML =
+          'Something went wrong sending this automatically. Please email us directly at <a href="mailto:info@paldeepsense.com" style="color:inherit; text-decoration:underline;">info@paldeepsense.com</a> instead.';
+      })
+      .finally(function () {
+        btn.disabled = false;
+        btn.textContent = "Send enquiry";
+      });
+  });
+});
 </script>
 </body>
 </html>
