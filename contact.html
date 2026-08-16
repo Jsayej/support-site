@@ -785,6 +785,25 @@ document.addEventListener("DOMContentLoaded", function () {
   var status = document.getElementById("contactFormStatus");
   var btn = document.getElementById("contactSubmitBtn");
 
+  function buildMailto(data) {
+    var lines = [
+      "New PalCandy wholesale enquiry",
+      "",
+      "Name: " + (data.get("name") || ""),
+      "Business: " + (data.get("business") || ""),
+      "Email: " + (data.get("email") || ""),
+      "Phone: " + (data.get("phone") || ""),
+      "Business type: " + (data.get("business_type") || ""),
+      "Interested in: " + (data.get("interest") || ""),
+      "",
+      "Message:",
+      data.get("message") || "(none)",
+    ];
+    var subject = encodeURIComponent("New PalCandy wholesale enquiry");
+    var body = encodeURIComponent(lines.join("\n"));
+    return "mailto:info@paldeepsense.com?subject=" + subject + "&body=" + body;
+  }
+
   form.addEventListener("submit", function (e) {
     e.preventDefault();
 
@@ -801,12 +820,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
     var data = new FormData(form);
 
+    // Fail fast (8s) instead of letting a blocked/unreachable network
+    // request hang for a long time before falling back.
+    var controller = new AbortController();
+    var timeoutId = setTimeout(function () { controller.abort(); }, 8000);
+
     fetch("https://formsubmit.co/ajax/info@paldeepsense.com", {
       method: "POST",
       headers: { Accept: "application/json" },
       body: data,
+      signal: controller.signal,
     })
       .then(function (res) {
+        clearTimeout(timeoutId);
         if (!res.ok) throw new Error("Request failed");
         return res.json();
       })
@@ -817,9 +843,16 @@ document.addEventListener("DOMContentLoaded", function () {
         form.reset();
       })
       .catch(function () {
+        clearTimeout(timeoutId);
+        // The automatic send didn't go through (often a network/firewall
+        // block on formsubmit.co on the visitor's side, not a site bug).
+        // Fall back to opening their email client with everything filled in,
+        // so the enquiry still reaches info@paldeepsense.com.
+        var mailto = buildMailto(data);
         status.style.color = "var(--cherry)";
         status.innerHTML =
-          'Something went wrong sending this automatically. Please email us directly at <a href="mailto:info@paldeepsense.com" style="color:inherit; text-decoration:underline;">info@paldeepsense.com</a> instead.';
+          'We couldn\'t send that automatically, so we\'ve opened your email app with the details filled in — just hit send there. If nothing opened, email us directly at <a href="mailto:info@paldeepsense.com" style="color:inherit; text-decoration:underline;">info@paldeepsense.com</a>.';
+        window.location.href = mailto;
       })
       .finally(function () {
         btn.disabled = false;
