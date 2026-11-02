@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PalCandy — Wholesale Candy, Food & Supply Distribution</title>
 <meta name="description" content="PalCandy supplies restaurants, grocers and shops with wholesale candy, food, aluminum foil, bags, plastic products and cleaning supplies — one order, one delivery.">
+<script>
+/* Supabase password-recovery links land on the site root. Forward them to the reset page. */
+(function(){var h=location.hash,s=location.search;
+if(/type=recovery/.test(h)||(/error=/.test(h)&&/error_code=/.test(h))||/[?&]code=/.test(s)){location.replace("reset-password.html"+s+h);}})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -845,5 +850,3 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 </body>
 </html>
-
-
